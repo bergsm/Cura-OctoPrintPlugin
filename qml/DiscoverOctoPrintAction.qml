@@ -459,6 +459,44 @@ Cura.MachineAction
                     }
                     CheckBox
                     {
+                        id: autoTPLinkSmartplugCheckBox
+                        text: catalog.i18nc("@label", "Automatically turn on Printer with TP-Link Smartplug")
+                        visible: manager.instanceInstalledPlugins.indexOf("tplinksmartplug") > -1
+                        checked: manager.instanceApiKeyAccepted && Cura.ContainerManager.getContainerMetaDataEntry(activeMachineId, "octoprint_tplink_smartplug") == "true"
+                        onClicked:
+                        {
+                           manager.setContainerMetaDataEntry(activeMachineId, "octoprint_tplink_smartplug", String(checked))
+                        }
+                    }
+
+                    Label
+                    {
+                        width: Math.floor(parent.width * 0.2)
+                        wrapMode: Text.WordWrap
+                        text: catalog.i18nc("@label", "TP-Link Smartplug IP Address")
+                        visible: manager.instanceInstalledPlugins.indexOf("tplinksmartplug") > -1
+                    }
+                    TextField //TODO parse this from tp link config settings
+                    {
+                        visible: manager.instanceInstalledPlugins.indexOf("tplinksmartplug") > -1
+                        id: tplinkipaddr
+                        //width: Math.floor(parent.parent.width * (autoTPLinkSmartplugCheckBox.visible ? 0.5 : 0.8) - UM.Theme.getSize("default_margin").width)
+                        width: Math.floor(parent.width * 0.6)
+                        onTextChanged:
+                        {
+                           manager.setContainerMetaDataEntry(activeMachineId, "tplinkipaddr", String(iplinkipaddr))
+                        }
+
+                        validator: RegExpValidator
+                        {
+                            regExp: /[0-9\.]*/
+                        }
+
+                    }
+
+
+                    CheckBox
+                    {
                         id: showCameraCheckBox
                         text: catalog.i18nc("@label", "Show webcam image")
                         enabled: manager.instanceSupportsCamera

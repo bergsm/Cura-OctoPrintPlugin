@@ -169,6 +169,11 @@ class OctoPrintOutputDevice(NetworkedPrinterOutputDevice):
         self._psucontrol_timer.setSingleShot(True)
         self._psucontrol_timer.timeout.connect(self._startPrint)
 
+        self._tplinksmartplug_timer = QTimer()
+        self._tplinksmartplug_timer.setInterval(20000) # TODO; Add preference for timer interval
+        self._tplinksmartplug_timer.setSingleShot(True)
+        self._tplinksmartplug_timer.timeout.connect(self._startPrint)
+
         self._show_camera = True
         self._camera_mirror = False
         self._camera_rotation = 0
@@ -375,11 +380,25 @@ class OctoPrintOutputDevice(NetworkedPrinterOutputDevice):
 
         use_psu_control = parseBool(global_container_stack.getMetaDataEntry("octoprint_psu_control", False))
 
+        use_tplink_smartplug = parseBool(global_container_stack.getMetaDataEntry("octoprint_tplink_smartplug", False))
+
         if self.activePrinter.state == "offline" and "psucontrol" in self._plugin_data and use_psu_control:
             self._sendCommandToApi("plugin/psucontrol", "turnPSUOn")
+            #self.post("plugin/psucontrol", "command: turnPSUOn", self._onRequestFinished)
             Logger.log("d", "PSU control 'on' command sent")
             self._psucontrol_timer.start()
             return
+
+        if self.activePrinter.state == "offline" and "tplinksmartplug" in self._plugin_data and use_tplink_smartplug:
+            #TODO use user ip address
+            #tplinkipaddr = global_container_stack.getMetaDataEntry("tplinkipaddr")
+            tplinkipaddr = "192.168.1.141"
+            data = json.dumps({"command": "turnOn", "ip": tplinkipaddr})
+            self.post("plugin/tplinksmartplug", data, self._onRequestFinished)
+            Logger.log("d", "TPLinkSmartPlug 'on' command sent to plug at " + tplinkipaddr)
+            self._tplinksmartplug_timer.start()
+            return
+
 
         elif self.activePrinter.state not in ["idle", ""]:
             Logger.log("d", "Tried starting a print, but current state is %s" % self.activePrinter.state)
@@ -499,10 +518,12 @@ class OctoPrintOutputDevice(NetworkedPrinterOutputDevice):
         Logger.log("d", "Sent job command to OctoPrint instance: %s", command)
 
     def _sendCommandToApi(self, end_point: str, commands: Union[str, List[str]]) -> None:
+        print(commands)
         if isinstance(commands, list):
             data = json.dumps({"commands": commands})
         else:
             data = json.dumps({"command": commands})
+        print(data)
         self.post(end_point, data, self._onRequestFinished)
 
     ## Overloaded from NetworkedPrinterOutputDevice.post() to backport https://github.com/Ultimaker/Cura/pull/4678
